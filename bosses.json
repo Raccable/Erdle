@@ -21,7 +21,6 @@
   {"name": "Mad Pumpkin Head", "region": "Limgrave", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Night's Cavalry", "region": "Limgrave", "type": "Field Boss", "damage": "Physical/Poison", "Remembrance": false},
   {"name": "Patches", "region": "Limgrave", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
-  {"name": "Beastman of Farum Azula", "region": "Limgrave", "type": "Field Boss", "damage": "Physical/Fire", "Remembrance": false},
   {"name": "Bell Bearing Hunter", "region": "Limgrave", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Black Knife Assassin", "region": "Limgrave", "type": "Field Boss", "damage": "Physical/Poison", "Remembrance": false},
   {"name": "Leonine Misbegotten", "region": "Weeping Peninsula", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
