@@ -3,6 +3,7 @@ const GRID_SIZE = 6; // max attempts
 const STATS_KEY = 'erdle_stats_v1';
 const ATTEMPTS_KEY = 'erdle_attempts_v1';
 const DATE_KEY = 'erdle_date_v1';
+const BOSS_KEY = 'erdle_boss_v1';
 
 let bosses = [];
 let target = null;
@@ -40,13 +41,30 @@ function findBossByName(name){
     return bosses.find(b => sanitizeName(b.name) === s || sanitizeName(b.short||'') === s);
 }
 
-function dateToDayIndex(d=new Date()){
-    const epoch = new Date('2025-01-01T00:00:00Z');
-    return Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - epoch.getTime()) / (24*60*60*1000));
+// ---------------- Date & Daily Boss ----------------
+function getESTDateString(){
+    const now = new Date();
+    const estOffset = -4; // EST = UTC-4 (adjust for DST if needed)
+    const estTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (estOffset * 3600000));
+    return estTime.toISOString().slice(0,10); // "YYYY-MM-DD"
 }
 
 function pickDailyBoss(){
-    return bosses[dateToDayIndex() % bosses.length];
+    const today = getESTDateString();
+    const storedDate = localStorage.getItem(DATE_KEY);
+    const storedBoss = localStorage.getItem(BOSS_KEY);
+
+    if(storedDate !== today || !storedBoss){
+        // Pick a random boss for today
+        const randomIndex = Math.floor(Math.random() * bosses.length);
+        const dailyBoss = bosses[randomIndex];
+
+        localStorage.setItem(DATE_KEY, today);
+        localStorage.setItem(BOSS_KEY, JSON.stringify(dailyBoss));
+        return dailyBoss;
+    } else {
+        return JSON.parse(storedBoss);
+    }
 }
 
 // ---------------- Stats ----------------
@@ -116,15 +134,9 @@ function initAutocomplete(){
 
 // ---------------- Game Logic ----------------
 function initializeGame(){
-    const today = dateToDayIndex();
-    const lastDay = Number(localStorage.getItem(DATE_KEY)||-1);
-
-    if(today !== lastDay){
-        localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
-        localStorage.setItem(DATE_KEY, today);
-    }
-
+    // Pick daily boss using EST logic
     target = pickDailyBoss();
+
     attempts = JSON.parse(localStorage.getItem(ATTEMPTS_KEY)||'[]');
     gameOver = attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name)) || attempts.length >= GRID_SIZE;
 
@@ -162,7 +174,6 @@ function handleGuess(){
     attempts.push(boss);
     localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
 
-    // Bounce animation cells one by one
     const cells = lastRow.querySelectorAll('.guess-cell');
     cells.forEach((c,i)=>{
         setTimeout(()=>c.classList.add('bounce'), i*100);
@@ -188,7 +199,10 @@ function handleGuess(){
 }
 
 // ---------------- Reveal Answer & Stats ----------------
-function revealAnswer(){ answerName.textContent = target.name; answerReveal.classList.remove('hidden'); }
+function revealAnswer(){ 
+    answerName.textContent = target.name; 
+    answerReveal.classList.remove('hidden'); 
+}
 
 function updateGameStats(win){
     const stats = loadStats();
