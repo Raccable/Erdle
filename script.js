@@ -269,7 +269,7 @@ function showOverlay(isWin){
                 .join('');
         }).join('\n');
 
-        const resultText = `${header}${gridText}\nBoss: ${target.name}`;
+        const resultText = `${header}${gridText}`;
         navigator.clipboard.writeText(resultText)
             .then(() => alert('Copied to clipboard!'));
     };
