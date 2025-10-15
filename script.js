@@ -235,9 +235,9 @@ function showOverlay(isWin){
             navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
         };
     } else {
-        title.textContent = 'Game Over!';
-    
-    // Show what you got right, even if you lost
+    title.textContent = 'Game Over!';
+
+    // Build grid of what player got right/wrong
     const gridStr = attempts.map(a => {
         const comp = compareGuess(a, target);
         return ['name','region','type','damage','remembrance']
@@ -251,8 +251,29 @@ function showOverlay(isWin){
         <p style="font-size:1.2em; line-height:1.4em;">${gridStr}</p>
     `;
 
-    shareBtn.style.display = 'none';
-    }
+    // Show share button even for losses
+    shareBtn.style.display = 'inline-block';
+    shareBtn.textContent = 'Copy Results';
+    shareBtn.onclick = () => {
+        const today = new Date();
+        const mm = ('0' + (today.getMonth() + 1)).slice(-2);
+        const dd = ('0' + today.getDate()).slice(-2);
+        const yyyy = today.getFullYear();
+
+        // Header shows X/6 since you lost
+        const header = `Erdle ${mm}/${dd}/${yyyy} X/${GRID_SIZE}\n`;
+        const gridText = attempts.map(a => {
+            const comp = compareGuess(a, target);
+            return ['name','region','type','damage','remembrance']
+                .map(k => comp[k] ? '🟩' : '⬛')
+                .join('');
+        }).join('\n');
+
+        const resultText = `${header}${gridText}\nBoss: ${target.name}`;
+        navigator.clipboard.writeText(resultText)
+            .then(() => alert('Copied to clipboard!'));
+    };
+}
 
     let countdownEl = overlay.querySelector('#overlay-countdown');
     if(!countdownEl){
