@@ -24,13 +24,13 @@ function sanitizeName(name){
     return name.trim().toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ');
 }
 
-function compareGuess(guess,target){
+function compareGuess(guess, target) {
     return {
         name: sanitizeName(guess.name) === sanitizeName(target.name),
         region: guess.region.toLowerCase() === target.region.toLowerCase(),
         type: guess.type.toLowerCase() === target.type.toLowerCase(),
         damage: guess.damage.toLowerCase() === target.damage.toLowerCase(),
-        remembrance: Boolean(guess.remembrance) === Boolean(target.remembrance)
+        remembrance: Boolean(guess.Remembrance) === Boolean(target.Remembrance)
     };
 }
 
@@ -104,7 +104,11 @@ function updateRowWithGuess(row,boss){
     const comp = compareGuess(boss,target);
     const attrs = ['name','region','type','damage','remembrance'];
     attrs.forEach((k,i)=>{
-        cells[i].textContent = k==='remembrance' ? (boss.remembrance ? 'Yes':'No') : boss[k];
+        if(k === 'remembrance'){
+            cells[i].textContent = boss.Remembrance ? 'Yes' : 'No';
+        } else {
+            cells[i].textContent = boss[k];
+        }
         cells[i].className = 'guess-cell ' + (comp[k] ? 'good':'bad');
     });
 }
