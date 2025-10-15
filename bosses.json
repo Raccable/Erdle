@@ -2,7 +2,7 @@
   {"name": "Beastman of Farum Azula", "region": "Limgrave", "type": "Cave", "damage": "Physical", "Remembrance": false},
   {"name": "Vyke, Knight of the Roundtable", "region": "Mountaintops of the Giants", "type": "Evergaol", "damage": "Lightning", "Remembrance": false},
   {"name": "Esgar, Priest of Blood", "region": "Leyndell, Royal Capital", "type": "Catacombs", "damage": "Bleed", "Remembrance": false},
-  {"name": "Fell Twins", "region": "Leyndell, Royal Capital", "type": "Catacombs", "damage": "Holy", "Remembrance": false},
+  {"name": "Fell Twins", "region": "Leyndell, Royal Capital", "type": "Duo", "damage": "Holy", "Remembrance": false},
   {"name": "Kindred of Rot", "region": "Mt. Gelmir", "type": "Cave", "damage": "Physical", "Remembrance": false},
   {"name": "Abductor Virgins(Duo)", "region": "Mt. Gelmir", "type": "Duo", "damage": "Physical", "Remembrance": false},
   {"name": "Wormface", "region": "Altus Plateau", "type": "Field Boss", "damage": "Death", "Remembrance": false},
