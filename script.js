@@ -2,8 +2,6 @@
 const GRID_SIZE = 6; // max attempts
 const STATS_KEY = 'erdle_stats_v1';
 const ATTEMPTS_KEY = 'erdle_attempts_v1';
-const DATE_KEY = 'erdle_date_v1';
-const BOSS_KEY = 'erdle_boss_v1';
 
 let bosses = [];
 let target = null;
@@ -41,30 +39,19 @@ function findBossByName(name){
     return bosses.find(b => sanitizeName(b.name) === s || sanitizeName(b.short||'') === s);
 }
 
-// ---------------- Date & Daily Boss ----------------
-function getESTDateString(){
-    const now = new Date();
-    const estOffset = -4; // EST = UTC-4 (adjust for DST if needed)
-    const estTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (estOffset * 3600000));
-    return estTime.toISOString().slice(0,10); // "YYYY-MM-DD"
+// ---------------- Date & Daily Boss (EST) ----------------
+function dateToDayIndex(d = new Date()) {
+    const epoch = new Date('2004-03-06T00:00:00Z'); // fixed epoch
+    // convert d to EST
+    const utc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const estOffset = -4; // UTC-4 for EST (adjust for DST if needed)
+    const estTime = utc + estOffset * 3600000;
+    return Math.floor((estTime - epoch.getTime()) / (24*60*60*1000));
 }
 
-function pickDailyBoss(){
-    const today = getESTDateString();
-    const storedDate = localStorage.getItem(DATE_KEY);
-    const storedBoss = localStorage.getItem(BOSS_KEY);
-
-    if(storedDate !== today || !storedBoss){
-        // Pick a random boss for today
-        const randomIndex = Math.floor(Math.random() * bosses.length);
-        const dailyBoss = bosses[randomIndex];
-
-        localStorage.setItem(DATE_KEY, today);
-        localStorage.setItem(BOSS_KEY, JSON.stringify(dailyBoss));
-        return dailyBoss;
-    } else {
-        return JSON.parse(storedBoss);
-    }
+function pickDailyBoss() {
+    const index = dateToDayIndex(); // deterministic boss based on day
+    return bosses[index % bosses.length];
 }
 
 // ---------------- Stats ----------------
@@ -134,8 +121,7 @@ function initAutocomplete(){
 
 // ---------------- Game Logic ----------------
 function initializeGame(){
-    // Pick daily boss using EST logic
-    target = pickDailyBoss();
+    target = pickDailyBoss(); // deterministic daily boss
 
     attempts = JSON.parse(localStorage.getItem(ATTEMPTS_KEY)||'[]');
     gameOver = attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name)) || attempts.length >= GRID_SIZE;
@@ -256,13 +242,23 @@ function showOverlay(isWin){
         countdownEl.id = 'overlay-countdown';
         overlay.querySelector('#win-content').appendChild(countdownEl);
     }
+
     function updateCountdown(){
         const now = new Date();
-        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1,0,0,0);
-        const diff = tomorrow - now;
-        const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+        const utcNow = new Date(now.getTime() + now.getTimezoneOffset()*60000);
+
+        const estOffset = -4; // EST = UTC-4
+        const estNow = new Date(utcNow.getTime() + estOffset*3600000);
+
+        const tomorrowEstMidnight = new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate()+1,0,0,0);
+        const diff = tomorrowEstMidnight.getTime() - estNow.getTime();
+
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000)/60000);
+        const s = Math.floor((diff % 60000)/1000);
         countdownEl.textContent = `Next game in ${h}h ${m}m ${s}s`;
     }
+
     updateCountdown();
     setInterval(updateCountdown,1000);
 
