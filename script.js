@@ -236,8 +236,22 @@ function showOverlay(isWin){
         };
     } else {
         title.textContent = 'Game Over!';
-        text.innerHTML = `The boss was <strong>${target.name}</strong>.`;
-        shareBtn.style.display='none';
+    
+    // Show what you got right, even if you lost
+    const gridStr = attempts.map(a => {
+        const comp = compareGuess(a, target);
+        return ['name','region','type','damage','remembrance']
+            .map(k => comp[k] ? '🟩' : '⬛')
+            .join('');
+    }).join('<br>');
+
+    text.innerHTML = `
+        <p>The boss was <strong>${target.name}</strong>.</p>
+        <p>Your guesses:</p>
+        <p style="font-size:1.2em; line-height:1.4em;">${gridStr}</p>
+    `;
+
+    shareBtn.style.display = 'none';
     }
 
     let countdownEl = overlay.querySelector('#overlay-countdown');
