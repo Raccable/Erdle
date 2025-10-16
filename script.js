@@ -39,18 +39,15 @@ function findBossByName(name){
     return bosses.find(b => sanitizeName(b.name) === s || sanitizeName(b.short||'') === s);
 }
 
-// ---------------- Date & Daily Boss (EST) ----------------
+// ---------------- Date & Daily Boss (Local Time) ----------------
 function dateToDayIndex(d = new Date()) {
-    const epoch = new Date('2004-03-06T00:00:00Z'); // fixed epoch
-    // convert d to EST
-    const utc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    const estOffset = -4; // UTC-4 for EST (adjust for DST if needed)
-    const estTime = utc + estOffset * 3600000;
-    return Math.floor((estTime - epoch.getTime()) / (24*60*60*1000));
+    const epoch = new Date('2004-03-06'); // local time epoch
+    const diff = d - epoch; // milliseconds since epoch
+    return Math.floor(diff / (24 * 60 * 60 * 1000)); // days since epoch
 }
 
 function pickDailyBoss() {
-    const index = dateToDayIndex(); // deterministic boss based on day
+    const index = dateToDayIndex(); // deterministic boss based on local day
     return bosses[index % bosses.length];
 }
 
@@ -235,45 +232,38 @@ function showOverlay(isWin){
             navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
         };
     } else {
-    title.textContent = 'Game Over!';
+        title.textContent = 'Game Over!';
 
-    // Build grid of what player got right/wrong
-    const gridStr = attempts.map(a => {
-        const comp = compareGuess(a, target);
-        return ['name','region','type','damage','remembrance']
-            .map(k => comp[k] ? '🟩' : '⬛')
-            .join('');
-    }).join('<br>');
-
-    text.innerHTML = `
-        <p>The boss was <strong>${target.name}</strong>.</p>
-        <p>Your guesses:</p>
-        <p style="font-size:1.2em; line-height:1.4em;">${gridStr}</p>
-    `;
-
-    // Show share button even for losses
-    shareBtn.style.display = 'inline-block';
-    shareBtn.textContent = 'Copy Results';
-    shareBtn.onclick = () => {
-        const today = new Date();
-        const mm = ('0' + (today.getMonth() + 1)).slice(-2);
-        const dd = ('0' + today.getDate()).slice(-2);
-        const yyyy = today.getFullYear();
-
-        // Header shows X/6 since you lost
-        const header = `Erdle ${mm}/${dd}/${yyyy} X/${GRID_SIZE}\n`;
-        const gridText = attempts.map(a => {
+        const gridStr = attempts.map(a => {
             const comp = compareGuess(a, target);
             return ['name','region','type','damage','remembrance']
                 .map(k => comp[k] ? '🟩' : '⬛')
                 .join('');
-        }).join('\n');
+        }).join('<br>');
 
-        const resultText = `${header}${gridText}`;
-        navigator.clipboard.writeText(resultText)
-            .then(() => alert('Copied to clipboard!'));
-    };
-}
+        text.innerHTML = `
+            <p>The boss was <strong>${target.name}</strong>.</p>
+            <p>Your guesses:</p>
+            <p style="font-size:1.2em; line-height:1.4em;">${gridStr}</p>
+        `;
+
+        shareBtn.style.display = 'inline-block';
+        shareBtn.textContent = 'Copy Results';
+        shareBtn.onclick = () => {
+            const today = new Date();
+            const mm = ('0' + (today.getMonth() + 1)).slice(-2);
+            const dd = ('0' + today.getDate()).slice(-2);
+            const yyyy = today.getFullYear();
+            const header = `Erdle ${mm}/${dd}/${yyyy} X/${GRID_SIZE}\n`;
+            const gridText = attempts.map(a => {
+                const comp = compareGuess(a, target);
+                return ['name','region','type','damage','remembrance']
+                    .map(k => comp[k] ? '🟩' : '⬛')
+                    .join('');
+            }).join('\n');
+            navigator.clipboard.writeText(header+gridText).then(()=>alert('Copied to clipboard!'));
+        };
+    }
 
     let countdownEl = overlay.querySelector('#overlay-countdown');
     if(!countdownEl){
@@ -284,17 +274,13 @@ function showOverlay(isWin){
 
     function updateCountdown(){
         const now = new Date();
-        const utcNow = new Date(now.getTime() + now.getTimezoneOffset()*60000);
-
-        const estOffset = -4; // EST = UTC-4
-        const estNow = new Date(utcNow.getTime() + estOffset*3600000);
-
-        const tomorrowEstMidnight = new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate()+1,0,0,0);
-        const diff = tomorrowEstMidnight.getTime() - estNow.getTime();
+        const tomorrowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const diff = tomorrowMidnight - now;
 
         const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000)/60000);
-        const s = Math.floor((diff % 60000)/1000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+
         countdownEl.textContent = `Next game in ${h}h ${m}m ${s}s`;
     }
 
