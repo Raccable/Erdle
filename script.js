@@ -8,6 +8,7 @@ let bosses = [];
 let target = null;
 let attempts = [];
 let gameOver = false;
+let testDayOffset = 0; // hidden combo day offset
 
 // DOM Elements
 const input = document.getElementById('guess-input');
@@ -41,15 +42,15 @@ function findBossByName(name) {
     return bosses.find(b => sanitizeName(b.name) === s || sanitizeName(b.short||'') === s);
 }
 
-// ---------------- Date & Daily Boss (Local Time) ----------------
+// ---------------- Date & Daily Boss ----------------
 function dateToDayIndex(d = new Date()) {
     const epoch = new Date(2004, 2, 6); // March 6, 2004 local
     const todayLocal = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     return Math.floor((todayLocal - epoch) / (24 * 60 * 60 * 1000));
 }
 
-function pickDailyBoss() {
-    const index = dateToDayIndex();
+function pickDailyBoss(d = new Date()) {
+    const index = dateToDayIndex(d);
     return bosses[index % bosses.length];
 }
 
@@ -123,22 +124,26 @@ function initAutocomplete() {
 }
 
 // ---------------- Game Logic ----------------
-function initializeGame() {
-    // Reset attempts if day changed
-    const todayStr = new Date().toDateString();
-    const lastDate = localStorage.getItem(LAST_DATE_KEY);
-    if (lastDate !== todayStr) {
-        localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
-        localStorage.setItem(LAST_DATE_KEY, todayStr);
+function initializeGame(isTest=false) {
+    const today = new Date();
+    const effectiveDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + testDayOffset);
+    const todayStr = effectiveDate.toDateString();
+
+    if (!isTest) {
+        // Reset daily attempts only on real day change
+        const lastDate = localStorage.getItem(LAST_DATE_KEY);
+        if (lastDate !== todayStr) {
+            localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
+            localStorage.setItem(LAST_DATE_KEY, todayStr);
+        }
     }
 
-    target = pickDailyBoss();
-    attempts = JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]');
+    target = pickDailyBoss(effectiveDate);
+    attempts = (isTest || testDayOffset > 0) ? [] : JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]');
     gameOver = attempts.some(a => sanitizeName(a.name) === sanitizeName(target.name)) || attempts.length >= GRID_SIZE;
 
     grid.innerHTML = '';
     makeHeaderRow();
-
     attempts.forEach(b => {
         const row = makeEmptyRow();
         updateRowWithGuess(row,b);
@@ -149,6 +154,7 @@ function initializeGame() {
     updateStatsUI();
     feedback.textContent = '';
     answerReveal.classList.add('hidden');
+    updateTodayDate();
 
     if (gameOver) {
         revealAnswer();
@@ -168,7 +174,7 @@ function handleGuess() {
     const lastRow = grid.querySelector('.guess-row:last-child');
     updateRowWithGuess(lastRow,boss);
     attempts.push(boss);
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
+    if(testDayOffset === 0) localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
 
     const cells = lastRow.querySelectorAll('.guess-cell');
     cells.forEach((c,i) => {
@@ -279,13 +285,45 @@ function copyResults(win){
 // ---------------- Today's Date ----------------
 function updateTodayDate() {
     const today = new Date();
-    todayDateEl.textContent = today.toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
-    
+    const effectiveDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + testDayOffset);
+    todayDateEl.textContent = effectiveDate.toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
+
     // Update at local midnight
     const now = new Date();
     const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1) - now;
     setTimeout(() => { updateTodayDate(); initializeGame(); }, msUntilMidnight + 1000);
 }
+
+// ---------------- Hidden Testing Shortcut ----------------
+let keysPressed = {};
+let comboTriggered = false;
+
+window.addEventListener('keydown', (e) => {
+    keysPressed[e.key] = true;
+
+    if(keysPressed['='] && keysPressed['\\'] && !comboTriggered) {
+        comboTriggered = true; // prevent retrigger
+
+        testDayOffset++; // advance 1 day
+        attempts = [];
+        gameOver = false;
+        grid.innerHTML = '';
+        makeHeaderRow();
+        makeEmptyRow();
+        feedback.textContent = '';
+        answerReveal.classList.add('hidden');
+
+        initializeGame(true); // test mode, do not modify localStorage
+        updateTodayDate();
+        console.log(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
+        alert(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    delete keysPressed[e.key];
+    if(e.key === '=' || e.key === '\\') comboTriggered = false; // unlock combo
+});
 
 // ---------------- Events ----------------
 btn.addEventListener('click', handleGuess);
