@@ -2,6 +2,7 @@
 const GRID_SIZE = 6; // max attempts
 const STATS_KEY = 'erdle_stats_v1';
 const ATTEMPTS_KEY = 'erdle_attempts_v1';
+const LAST_DATE_KEY = 'erdle_last_date';
 
 let bosses = [];
 let target = null;
@@ -18,6 +19,7 @@ const winsEl = document.getElementById('wins');
 const playedEl = document.getElementById('played');
 const answerReveal = document.getElementById('answer-reveal');
 const answerName = document.getElementById('answer-name');
+const todayDateEl = document.getElementById('today-date');
 
 // ---------------- Utilities ----------------
 function sanitizeName(name){
@@ -41,13 +43,13 @@ function findBossByName(name){
 
 // ---------------- Date & Daily Boss (Local Time) ----------------
 function dateToDayIndex(d = new Date()) {
-    const epoch = new Date('2004-03-06'); // local time epoch
-    const diff = d - epoch; // milliseconds since epoch
-    return Math.floor(diff / (24 * 60 * 60 * 1000)); // days since epoch
+    const epoch = new Date(Date.UTC(2004, 2, 6)); // March 6, 2004 UTC
+    const utcToday = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.floor((utcToday - epoch.getTime()) / (24 * 60 * 60 * 1000));
 }
 
 function pickDailyBoss() {
-    const index = dateToDayIndex(); // deterministic boss based on local day
+    const index = dateToDayIndex();
     return bosses[index % bosses.length];
 }
 
@@ -122,8 +124,15 @@ function initAutocomplete(){
 
 // ---------------- Game Logic ----------------
 function initializeGame(){
-    target = pickDailyBoss(); // deterministic daily boss
+    // Reset attempts if day has changed
+    const todayStr = new Date().toDateString();
+    const lastDate = localStorage.getItem(LAST_DATE_KEY);
+    if(lastDate !== todayStr){
+        localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
+        localStorage.setItem(LAST_DATE_KEY, todayStr);
+    }
 
+    target = pickDailyBoss();
     attempts = JSON.parse(localStorage.getItem(ATTEMPTS_KEY)||'[]');
     gameOver = attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name)) || attempts.length >= GRID_SIZE;
 
@@ -219,50 +228,20 @@ function showOverlay(isWin){
         }).join('<br>');
 
         shareBtn.style.display = 'inline-block';
-        shareBtn.onclick = ()=>{
-            const today = new Date();
-            const mm = ('0'+(today.getMonth()+1)).slice(-2);
-            const dd = ('0'+today.getDate()).slice(-2);
-            const yyyy = today.getFullYear();
-            const header = `Erdle ${mm}/${dd}/${yyyy} ${attempts.length}/${GRID_SIZE}\n`;
-            const gridStr = attempts.map(a=>{
-                const comp = compareGuess(a,target);
-                return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
-            }).join('\n');
-            navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
-        };
+        shareBtn.onclick = ()=>{ copyResults(true); };
     } else {
         title.textContent = 'Game Over!';
-
-        const gridStr = attempts.map(a => {
-            const comp = compareGuess(a, target);
-            return ['name','region','type','damage','remembrance']
-                .map(k => comp[k] ? '🟩' : '⬛')
-                .join('');
-        }).join('<br>');
-
         text.innerHTML = `
             <p>The boss was <strong>${target.name}</strong>.</p>
             <p>Your guesses:</p>
-            <p style="font-size:1.2em; line-height:1.4em;">${gridStr}</p>
+            <p style="font-size:1.2em; line-height:1.4em;">${attempts.map(a=>{
+                const comp = compareGuess(a,target);
+                return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
+            }).join('<br>')}</p>
         `;
-
         shareBtn.style.display = 'inline-block';
         shareBtn.textContent = 'Copy Results';
-        shareBtn.onclick = () => {
-            const today = new Date();
-            const mm = ('0' + (today.getMonth() + 1)).slice(-2);
-            const dd = ('0' + today.getDate()).slice(-2);
-            const yyyy = today.getFullYear();
-            const header = `Erdle ${mm}/${dd}/${yyyy} X/${GRID_SIZE}\n`;
-            const gridText = attempts.map(a => {
-                const comp = compareGuess(a, target);
-                return ['name','region','type','damage','remembrance']
-                    .map(k => comp[k] ? '🟩' : '⬛')
-                    .join('');
-            }).join('\n');
-            navigator.clipboard.writeText(header+gridText).then(()=>alert('Copied to clipboard!'));
-        };
+        shareBtn.onclick = () => { copyResults(false); };
     }
 
     let countdownEl = overlay.querySelector('#overlay-countdown');
@@ -276,11 +255,9 @@ function showOverlay(isWin){
         const now = new Date();
         const tomorrowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const diff = tomorrowMidnight - now;
-
         const h = Math.floor(diff / 3600000);
         const m = Math.floor((diff % 3600000) / 60000);
         const s = Math.floor((diff % 60000) / 1000);
-
         countdownEl.textContent = `Next game in ${h}h ${m}m ${s}s`;
     }
 
@@ -288,6 +265,30 @@ function showOverlay(isWin){
     setInterval(updateCountdown,1000);
 
     overlay.classList.remove('hidden');
+}
+
+function copyResults(win){
+    const today = new Date();
+    const mm = ('0'+(today.getMonth()+1)).slice(-2);
+    const dd = ('0'+today.getDate()).slice(-2);
+    const yyyy = today.getFullYear();
+    const header = `Erdle ${mm}/${dd}/${yyyy} ${win ? attempts.length : 'X'}/${GRID_SIZE}\n`;
+    const gridStr = attempts.map(a=>{
+        const comp = compareGuess(a,target);
+        return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
+    }).join('\n');
+    navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
+}
+
+// ---------------- Today's Date ----------------
+function updateTodayDate(){
+    const today = new Date();
+    todayDateEl.textContent = today.toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'});
+    
+    // Update at midnight
+    const now = new Date();
+    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() +1) - now;
+    setTimeout(()=>{ updateTodayDate(); initializeGame(); }, msUntilMidnight + 1000);
 }
 
 // ---------------- Events ----------------
@@ -299,6 +300,7 @@ fetch('bosses.json')
 .then(r => r.json())
 .then(data => {
     bosses = data;
+    updateTodayDate();
     initializeGame();
     initAutocomplete();
 })
