@@ -64,18 +64,28 @@ h1 {
   box-shadow: 0 6px 18px rgba(0,0,0,0.6); 
 }
 
-#grid { 
-  display:flex; 
-  flex-direction:column; 
-  gap:10px; 
+/* ---------------- Game Grid — Fixed 5 columns ---------------- */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* Dynamic grid: fits any screen size */
-.attr-grid.header-row,
-.guess-row { 
-  display:grid; 
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); 
-  gap:8px; 
+#grid div {
+  background-color: #1a1a1a;
+  color: #e0b020;
+  font-family: 'UnifrakturCook', serif;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* ---------------- Attribute & Guess Cells ---------------- */
@@ -285,6 +295,17 @@ footer {
 @media (max-width:520px){
   #controls { flex-direction:column; }
   button { width:100%; }
+}
+
+@media (max-width:480px) {
+  #grid {
+    grid-template-columns: repeat(5, minmax(50px, 1fr));
+    gap: 6px;
+  }
+  #grid div {
+    padding: 6px;
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width:400px){
