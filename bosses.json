@@ -31,7 +31,7 @@
   {"name": "Black Blade Kindred (Bestial Sanctum)", "region": "Dragonburrow", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Black Blade Kindred (Forbidden Lands)", "region": "Forbidden Lands", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Beastmen of Farum Azula(Duo)", "region": "Dragonburrow", "type": "Duo", "damage": "Physical", "Remembrance": false},
-  {"name": "Frenzied Fuelist", "region": "Caelid", "type": "Cave", "damage": "Physical", "Remembrance": false},
+  {"name": "Frenzied Duelist", "region": "Caelid", "type": "Cave", "damage": "Physical", "Remembrance": false},
   {"name": "Fallingstar Beast(Cave)", "region": "Caelid", "type": "Cave", "damage": "Physical", "Remembrance": false},
   {"name": "Fallingstar Beast", "region": "Many", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Decaying Ekzykes", "region": "Caelid", "type": "Dragon", "damage": "Rot", "Remembrance": false},

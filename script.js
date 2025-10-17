@@ -22,6 +22,14 @@ const answerReveal = document.getElementById('answer-reveal');
 const answerName = document.getElementById('answer-name');
 const todayDateEl = document.getElementById('today-date');
 
+// ---------------- Mobile Input Enhancements ----------------
+input.setAttribute('autocomplete', 'off');
+input.setAttribute('autocorrect', 'off');
+input.setAttribute('autocapitalize', 'none');
+input.setAttribute('spellcheck', 'false');
+input.setAttribute('inputmode', 'text');
+input.setAttribute('placeholder', 'Type a boss name...');
+
 // ---------------- Utilities ----------------
 function sanitizeName(name) {
     return name.trim().toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ');
@@ -130,7 +138,6 @@ function initializeGame(isTest=false) {
     const todayStr = effectiveDate.toDateString();
 
     if (!isTest) {
-        // Reset daily attempts only on real day change
         const lastDate = localStorage.getItem(LAST_DATE_KEY);
         if (lastDate !== todayStr) {
             localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
@@ -160,6 +167,8 @@ function initializeGame(isTest=false) {
         revealAnswer();
         showOverlay(attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name)));
     }
+
+    input.focus(); // mobile-friendly focus
 }
 
 // ---------------- Handle Guess ----------------
@@ -198,6 +207,7 @@ function handleGuess() {
     }
 
     input.value = '';
+    input.focus();
 }
 
 // ---------------- Reveal Answer & Stats ----------------
@@ -267,14 +277,18 @@ function showOverlay(isWin) {
     updateCountdown();
     setInterval(updateCountdown,1000);
     overlay.classList.remove('hidden');
+
+    // Scroll overlay content to top for smaller screens
+    overlay.scrollTop = 0;
 }
 
+// ---------------- Copy Results ----------------
 function copyResults(win){
     const today = new Date();
     const mm = ('0'+(today.getMonth()+1)).slice(-2);
     const dd = ('0'+today.getDate()).slice(-2);
     const yyyy = today.getFullYear();
-    const header = `Erdle ${mm}/${dd}/${yyyy} ${win ? attempts.length : 'X'}/${GRID_SIZE}\n`;
+    const header = `Elden Ring: Bossdle ${mm}/${dd}/${yyyy} ${win ? attempts.length : 'X'}/${GRID_SIZE}\n`;
     const gridStr = attempts.map(a=>{
         const comp = compareGuess(a,target);
         return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
@@ -288,7 +302,6 @@ function updateTodayDate() {
     const effectiveDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + testDayOffset);
     todayDateEl.textContent = effectiveDate.toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
 
-    // Update at local midnight
     const now = new Date();
     const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1) - now;
     setTimeout(() => { updateTodayDate(); initializeGame(); }, msUntilMidnight + 1000);
@@ -302,9 +315,9 @@ window.addEventListener('keydown', (e) => {
     keysPressed[e.key] = true;
 
     if(keysPressed['='] && keysPressed['\\'] && !comboTriggered) {
-        comboTriggered = true; // prevent retrigger
+        comboTriggered = true;
 
-        testDayOffset++; // advance 1 day
+        testDayOffset++;
         attempts = [];
         gameOver = false;
         grid.innerHTML = '';
@@ -313,7 +326,7 @@ window.addEventListener('keydown', (e) => {
         feedback.textContent = '';
         answerReveal.classList.add('hidden');
 
-        initializeGame(true); // test mode, do not modify localStorage
+        initializeGame(true);
         updateTodayDate();
         console.log(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
         alert(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
@@ -322,7 +335,7 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
     delete keysPressed[e.key];
-    if(e.key === '=' || e.key === '\\') comboTriggered = false; // unlock combo
+    if(e.key === '=' || e.key === '\\') comboTriggered = false;
 });
 
 // ---------------- Events ----------------
