@@ -85,7 +85,7 @@
   {"name": "Guardian Golem", "region": "Limgrave", "type": "Cave", "damage": "Fire", "Remembrance": false},
   {"name": "Mad Pumpkin Head", "region": "Limgrave", "type": "Ruin Boss", "damage": "Physical", "Remembrance": false},
   {"name": "Mad Pumpkin Heads(Duo)", "region": "Caelid", "type": "Duo", "damage": "Physical", "Remembrance": false},
-  {"name": "Patches", "region": "Limgrave", "type": "Cave", "damage": "Magic", "Remembrance": false},
+  {"name": "Patches", "region": "Limgrave", "type": "Cave", "damage": "Physical", "Remembrance": false},
   {"name": "Bell Bearing Hunter", "region": "Many", "type": "Night Time", "damage": "Physical", "Remembrance": false},
   {"name": "Black Knife Assassin", "region": "Many", "type": "Cave", "damage": "Holy", "Remembrance": false},
   {"name": "Leonine Misbegotten", "region": "Weeping Peninsula", "type": "Field Boss", "damage": "Physical", "Remembrance": false},
