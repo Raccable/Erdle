@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap');
 
-/* ---------------- Global Variables ---------------- */
 :root {
   --bg: #0b0b0b;
   --card: #111;
@@ -14,7 +13,6 @@
   --header-yellow: #f9d71c;
 }
 
-/* ---------------- Global Styles ---------------- */
 * { 
   box-sizing: border-box; 
   font-family: 'Arial', 'Times New Roman', sans-serif; 
@@ -29,16 +27,10 @@ html, body {
   justify-content: center; 
   align-items: center; 
   padding: 20px; 
-  overflow-x: hidden; 
-  -webkit-text-size-adjust: 100%;
 }
 
-.container { 
-  max-width: 720px; 
-  width: 100%; 
-}
+.container { max-width: 720px; width: 100%; }
 
-/* ---------------- Header ---------------- */
 h1 { 
   font-family:'UnifrakturCook', Gothic, serif; 
   font-weight:700; 
@@ -55,7 +47,6 @@ h1 {
   font-style: italic; 
 }
 
-/* ---------------- Game Section ---------------- */
 #game { 
   background: var(--card); 
   padding:20px; 
@@ -64,31 +55,18 @@ h1 {
   box-shadow: 0 6px 18px rgba(0,0,0,0.6); 
 }
 
-/* ---------------- Game Grid — Fixed 5 columns ---------------- */
-#grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  justify-items: center;
-  align-items: center;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+#grid { 
+  display:flex; 
+  flex-direction:column; 
+  gap:10px; 
 }
 
-#grid div {
-  background-color: #1a1a1a;
-  color: #e0b020;
-  font-family: 'UnifrakturCook', serif;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 10px;
-  text-align: center;
-  font-size: 0.9rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+.attr-grid.header-row { 
+  display:grid; 
+  grid-template-columns:repeat(5,1fr); 
+  gap:8px; 
 }
 
-/* ---------------- Attribute & Guess Cells ---------------- */
 .attr-header { 
   border:1px solid var(--border); 
   border-radius:8px; 
@@ -100,6 +78,12 @@ h1 {
   color: var(--header-yellow); 
   text-shadow:1px 1px 3px #000; 
   background-color:#222; 
+}
+
+.guess-row { 
+  display:grid; 
+  grid-template-columns:repeat(5,1fr); 
+  gap:8px; 
 }
 
 .guess-cell { 
@@ -132,7 +116,7 @@ h1 {
   color: var(--text); 
 }
 
-/* ---------------- Remembrance Boss ---------------- */
+/* Remembrance Boss */
 .remembrance { 
   background-color: var(--good); 
   color: #04110a; 
@@ -144,7 +128,6 @@ h1 {
   text-decoration: underline;
 }
 
-/* ---------------- Controls ---------------- */
 #controls { 
   display:flex; 
   gap:8px; 
@@ -177,7 +160,6 @@ button {
 button:hover { background:#deb77c; }
 button:active { transform: translateY(1px); }
 
-/* ---------------- Feedback & Stats ---------------- */
 #feedback { 
   margin:8px 0; 
   min-height:1.4em; 
@@ -204,7 +186,6 @@ button:active { transform: translateY(1px); }
   font-style:italic; 
 }
 
-/* ---------------- Answer Reveal ---------------- */
 #answer-reveal { 
   margin-top:10px; 
   font-size:14px; 
@@ -215,7 +196,6 @@ button:active { transform: translateY(1px); }
 
 .hidden { display:none; }
 
-/* ---------------- Footer ---------------- */
 footer { 
   margin-top:12px; 
   color: var(--muted); 
@@ -224,7 +204,7 @@ footer {
   font-style:italic; 
 }
 
-/* ---------------- Overlay ---------------- */
+/* Overlay */
 #win-overlay { 
   position:fixed; 
   top:0; 
@@ -281,7 +261,7 @@ footer {
   font-weight:bold; 
 }
 
-/* ---------------- Animations ---------------- */
+/* Bounce animation */
 @keyframes bounceAnim {
   0% { transform: translateY(0); }
   25% { transform: translateY(-12px); }
@@ -291,25 +271,10 @@ footer {
 }
 .bounce { animation: bounceAnim 0.6s ease; }
 
-/* ---------------- Responsive Tweaks ---------------- */
+/* Responsive */
 @media (max-width:520px){
+  .attr-grid.header-row,.guess-row { grid-template-columns:repeat(3,1fr); }
+  .attr-header,.guess-cell { font-size:12px; padding:8px; }
   #controls { flex-direction:column; }
   button { width:100%; }
-}
-
-@media (max-width:480px) {
-  #grid {
-    grid-template-columns: repeat(5, minmax(50px, 1fr));
-    gap: 6px;
-  }
-  #grid div {
-    padding: 6px;
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width:400px){
-  .attr-header, .guess-cell { font-size:11px; padding:6px; }
-  h1 { font-size:2.2rem; }
-  #guess-input { font-size:16px; } /* Prevent iOS zoom on focus */
 }

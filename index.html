@@ -1,99 +1,80 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Elden Ring: Bossdle — Elden Ring Boss Wordle</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Elden Ring: Bossdle — Elden Ring Boss Wordle</title>
+<link rel="stylesheet" href="style.css" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css" />
+<!-- Gothic Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
 
-  <!-- Gothic Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Gothic footer style */
+footer {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 0.9em;
+  color: #c0c0c0;
+  font-family: 'UnifrakturCook', Georgia, serif;
+  text-shadow: 1px 1px 2px black;
+  letter-spacing: 0.05em;
+}
 
-  <style>
-    /* Footer - Gothic style */
-    footer {
-      text-align: center;
-      margin-top: 2.5rem;
-      font-size: 0.9em;
-      color: #c0c0c0;
-      font-family: 'UnifrakturCook', Georgia, serif;
-      text-shadow: 1px 1px 2px black;
-      letter-spacing: 0.05em;
-    }
+footer a {
+  color: #e0b020;
+  text-decoration: none;
+}
 
-    footer a {
-      color: #e0b020;
-      text-decoration: none;
-      transition: text-decoration 0.2s ease;
-    }
-
-    footer a:hover {
-      text-decoration: underline;
-    }
-  </style>
+footer a:hover {
+  text-decoration: underline;
+}
+</style>
 </head>
 <body>
-  <main class="container">
-    <header>
-      <h1>Elden Ring: Bossdle</h1>
-      <p id="today-date" class="subtitle"></p>
-      <p class="subtitle">Guess the Elden Ring boss. Feedback shows matching attributes.</p>
-    </header>
+<main class="container">
+  <h1>Elden Ring: Bossdle</h1>
+  <p id="today-date" class="subtitle"></p>
+  <p class="subtitle">Guess the Elden Ring boss. Feedback shows matching attributes.</p>
 
-    <section id="game" aria-live="polite">
-      <!-- Guess Grid -->
-      <div id="grid"></div>
+  <section id="game">
+    <div id="grid" aria-live="polite"></div>
 
-      <!-- Guess Controls -->
-      <div id="controls">
-        <input 
-          id="guess-input"
-          list="bosses-list"
-          placeholder="Type boss name..."
-          autocomplete="off"
-          aria-label="Guess boss name"
-        />
-        <datalist id="bosses-list"></datalist>
-        <button id="guess-btn" aria-label="Submit guess">Guess</button>
-      </div>
-
-      <!-- Feedback Section -->
-      <div id="feedback" role="status"></div>
-
-      <!-- Player Stats -->
-      <div id="stats" aria-label="Player statistics">
-        <div>Streak: <span id="streak">0</span></div>
-        <div>Wins: <span id="wins">0</span></div>
-        <div>Played: <span id="played">0</span></div>
-      </div>
-
-      <!-- Answer Reveal -->
-      <div id="answer-reveal" class="hidden">
-        Answer: <span id="answer-name"></span>
-      </div>
-    </section>
-
-    <footer>
-      <small>
-        Data: Elden Ring Wiki. Built for 
-        <a href="https://twitch.tv/jordanxap" target="_blank" rel="noopener noreferrer">Jordanxap</a>.
-      </small>
-    </footer>
-  </main>
-
-  <!-- Win Overlay -->
-  <div id="win-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
-    <div id="win-content">
-      <button id="win-close" aria-label="Close overlay">✕</button>
-      <h2 id="overlay-title">You Win!</h2>
-      <div id="overlay-text"></div>
-      <p id="overlay-countdown"></p>
-      <button id="overlay-share">Share</button>
+    <div id="controls">
+      <input id="guess-input" list="bosses-list" placeholder="Type boss name..." autocomplete="off" />
+      <datalist id="bosses-list"></datalist>
+      <button id="guess-btn">Guess</button>
     </div>
-  </div>
 
-  <script src="script.js" defer></script>
+    <div id="feedback"></div>
+
+    <div id="stats">
+      <div>Streak: <span id="streak">0</span></div>
+      <div>Wins: <span id="wins">0</span></div>
+      <div>Played: <span id="played">0</span></div>
+    </div>
+
+    <div id="answer-reveal" class="hidden">
+      Answer: <span id="answer-name"></span>
+    </div>
+  </section>
+
+  <footer>
+    <small>Data: Elden Ring Wiki. Built for <a href="https://twitch.tv/jordanxap" target="_blank">Jordanxap</a>.</small>
+  </footer>
+</main>
+
+<!-- Win Overlay -->
+<div id="win-overlay" class="hidden">
+  <div id="win-content">
+    <button id="win-close">✕</button>
+    <h2 id="overlay-title">You Win!</h2>
+    <div id="overlay-text"></div>
+    <p id="overlay-countdown"></p>
+    <button id="overlay-share">Share</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
