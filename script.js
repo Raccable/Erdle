@@ -22,9 +22,14 @@ function daysSinceStart() {
   return Math.floor(diff / (1000*60*60*24)) + testDayOffset;
 }
 
+// Better deterministic PRNG for daily boss
 function seededRandom(seed) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
+  seed = (seed ^ 61) ^ (seed >> 16);
+  seed = seed + (seed << 3);
+  seed = seed ^ (seed >> 4);
+  seed = seed * 0x27d4eb2d;
+  seed = seed ^ (seed >> 15);
+  return (seed >>> 0) / 4294967295;
 }
 
 function getBossOfTheDay() {

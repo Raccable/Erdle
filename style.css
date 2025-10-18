@@ -4,7 +4,7 @@
 :root {
   --bg: #0b0b0b;
   --card: #111;
-  --accent: #cfa26b; /* Original orange/yellow glow */
+  --accent: #cfa26b;
   --muted: #9aa1a6;
   --good: #2ecc71;
   --semi: #f1c40f;
@@ -12,7 +12,7 @@
   --text: #eee;
   --border: #222;
   --header-yellow: #f9d71c;
-  --eld-blue: #7f8c8d; /* Darker, greyish-blue */
+  --eld-blue: #7f8c8d;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,13 +30,46 @@ html, body {
 
 .container { max-width: 720px; width: 100%; }
 
+/* 🔥 Subtle Golden Frenzied Flame Title 🔥 */
 h1 {
-  font-family:'UnifrakturCook', Gothic, serif;
-  font-weight:700;
-  color: var(--header-yellow);
+  font-family: 'UnifrakturCook', Gothic, serif;
+  font-weight: 700;
   font-size: 2.6rem;
-  text-align:center;
-  text-shadow: 2px 2px 4px #000;
+  text-align: center;
+  color: #d4a54a;
+  text-shadow:
+    0 0 4px #d4a54a,
+    0 0 8px #c98b3c,
+    0 0 12px #b86f2a;
+  animation: frenziedFlame 6s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes frenziedFlame {
+  0% {
+    transform: scale(1);
+    filter: hue-rotate(0deg) brightness(1);
+    text-shadow:
+      0 0 3px #b8862b,
+      0 0 6px #c58a33,
+      0 0 10px #a76b23;
+  }
+  50% {
+    transform: scale(1.035);
+    filter: hue-rotate(8deg) brightness(1.1);
+    text-shadow:
+      0 0 4px #e0b14d,
+      0 0 8px #d59a3a,
+      0 0 14px #c57f2b;
+  }
+  100% {
+    transform: scale(1);
+    filter: hue-rotate(0deg) brightness(1);
+    text-shadow:
+      0 0 3px #b8862b,
+      0 0 6px #c58a33,
+      0 0 10px #a76b23;
+  }
 }
 
 #bossdle-day {
@@ -106,7 +139,6 @@ h1 {
 .guess-cell.semi { background-color: var(--semi); color: #1a1300; font-weight:bold; }
 .guess-cell.bad { background-color:#111; color: var(--text); }
 
-/* Wave bounce animation for winning row */
 @keyframes wave {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-15px); }
@@ -121,7 +153,6 @@ h1 {
   background:#070707; color:#fff; font-size:14px; font-style:italic;
 }
 
-/* Gothic-style Guess Button */
 #guess-btn {
   font-family: 'UnifrakturCook', cursive;
   font-size: 1.2rem;
@@ -170,7 +201,6 @@ h1 {
 
 footer { margin-top:12px; color: var(--muted); font-size:12px; text-align:center; font-style:italic; }
 
-/* Gothic Win Overlay */
 #win-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -187,7 +217,7 @@ footer { margin-top:12px; color: var(--muted); font-size:12px; text-align:center
 
 #win-content {
   background: linear-gradient(145deg, #111 0%, #1a1a1a 100%);
-  border: 2px solid var(--accent); /* orange/yellow outer glow */
+  border: 2px solid var(--accent);
   padding: 24px;
   border-radius: 16px;
   text-align: center;
@@ -198,7 +228,7 @@ footer { margin-top:12px; color: var(--muted); font-size:12px; text-align:center
   position: relative;
   box-shadow: 0 0 12px var(--accent), 0 0 24px rgba(0,0,0,0.7) inset;
   text-shadow: none;
-  color: var(--eld-blue); /* text color inside overlay */
+  color: var(--eld-blue);
   animation: overlay-pop 0.4s ease-out;
 }
 
@@ -207,13 +237,51 @@ footer { margin-top:12px; color: var(--muted); font-size:12px; text-align:center
   100% { transform: scale(1); opacity: 1; }
 }
 
+#overlay-title {
+  font-family: 'UnifrakturCook', Gothic, serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  text-shadow: 
+    0 0 8px var(--accent),
+    0 0 16px var(--accent),
+    0 0 24px var(--accent),
+    0 0 32px var(--accent);
+  animation: glowPulse 1.5s infinite alternate;
+}
+
+@keyframes glowPulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 
+      0 0 4px var(--accent),
+      0 0 8px var(--accent),
+      0 0 12px var(--accent);
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 
+      0 0 12px var(--accent),
+      0 0 24px var(--accent),
+      0 0 36px var(--accent);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 
+      0 0 4px var(--accent),
+      0 0 8px var(--accent),
+      0 0 12px var(--accent);
+  }
+}
+
 #overlay-text, .emoji-row {
-  font-family: 'Cinzel', serif; /* readable Gothic font */
+  font-family: 'Cinzel', serif;
   font-weight: 700;
   font-size: 1.2rem;
   line-height: 1.5;
   margin: 12px 0;
-  color: var(--eld-blue); /* inside text color */
+  color: var(--eld-blue);
   text-shadow: none;
 }
 
@@ -225,7 +293,7 @@ footer { margin-top:12px; color: var(--muted); font-size:12px; text-align:center
   border: 2px solid var(--eld-blue);
   border-radius: 12px;
   color: #fff;
-  font-family: 'Cinzel', serif; /* readable Gothic font */
+  font-family: 'Cinzel', serif;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
