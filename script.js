@@ -1,5 +1,5 @@
 // ---------------- Constants & Globals ----------------
-const GRID_SIZE = 6; // max attempts
+const GRID_SIZE = 6;
 const STATS_KEY = 'erdle_stats_v1';
 const ATTEMPTS_KEY = 'erdle_attempts_v1';
 const LAST_DATE_KEY = 'erdle_last_date';
@@ -8,337 +8,299 @@ let bosses = [];
 let target = null;
 let attempts = [];
 let gameOver = false;
-let testDayOffset = 0; // hidden combo day offset
+let testDayOffset = 0;
+let testMode = false; // flag for test/skip-day mode
 
-// DOM Elements
-const input = document.getElementById('guess-input');
-const btn = document.getElementById('guess-btn');
-const grid = document.getElementById('grid');
-const feedback = document.getElementById('feedback');
-const streakEl = document.getElementById('streak');
-const winsEl = document.getElementById('wins');
-const playedEl = document.getElementById('played');
-const answerReveal = document.getElementById('answer-reveal');
-const answerName = document.getElementById('answer-name');
-const todayDateEl = document.getElementById('today-date');
-
-// ---------------- Utilities ----------------
-function sanitizeName(name) {
-    return name.trim().toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ');
+// ---------------- Time Helpers ----------------
+function getESTDate(baseDate = new Date()) {
+  const utc = baseDate.getTime() + baseDate.getTimezoneOffset() * 60000;
+  return new Date(utc + -5 * 3600000); // UTC-5
 }
 
-function compareGuess(guess, target) {
-    return {
-        name: sanitizeName(guess.name) === sanitizeName(target.name),
-        region: guess.region.toLowerCase() === target.region.toLowerCase(),
-        type: guess.type.toLowerCase() === target.type.toLowerCase(),
-        damage: guess.damage.toLowerCase() === target.damage.toLowerCase(),
-        remembrance: Boolean(guess.Remembrance) === Boolean(target.Remembrance)
-    };
+function getNextMidnightEST() {
+  const now = getESTDate();
+  const next = new Date(now);
+  next.setHours(24,0,0,0);
+  return next;
 }
 
-function findBossByName(name) {
-    const s = sanitizeName(name);
-    return bosses.find(b => sanitizeName(b.name) === s || sanitizeName(b.short||'') === s);
+// ---------------- Boss Selection ----------------
+const startDate = new Date('2025-10-17T00:00:00-05:00'); // day 001
+
+function daysSinceStart() {
+  const now = getESTDate();
+  const diff = now - startDate;
+  return Math.floor(diff / (1000*60*60*24)) + testDayOffset;
 }
 
-// ---------------- Date & Daily Boss ----------------
-function dateToDayIndex(d = new Date()) {
-    const epoch = new Date(2004, 2, 6); // March 6, 2004 local
-    const todayLocal = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    return Math.floor((todayLocal - epoch) / (24 * 60 * 60 * 1000));
+function seededRandom(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
 }
 
-function pickDailyBoss(d = new Date()) {
-    const index = dateToDayIndex(d);
-    return bosses[index % bosses.length];
+function getBossOfTheDay() {
+  const index = Math.floor(seededRandom(daysSinceStart()+1) * bosses.length);
+  return bosses[index];
+}
+
+function pad(num, size) {
+  let s = "000" + num;
+  return s.substr(s.length - size);
+}
+
+// ---------------- DOM Elements ----------------
+const gridEl = document.getElementById('grid');
+const inputEl = document.getElementById('guess-input');
+const btnEl = document.getElementById('guess-btn');
+const feedbackEl = document.getElementById('feedback');
+const bossdleDayEl = document.getElementById('bossdle-day');
+const answerRevealEl = document.getElementById('answer-reveal');
+const answerNameEl = document.getElementById('answer-name');
+const overlay = document.getElementById('win-overlay');
+
+// ---------------- Load Bosses ----------------
+fetch('bosses.json')
+  .then(r => r.json())
+  .then(data => {
+    bosses = data;
+    populateDatalist();
+    initializeGame();
+  })
+  .catch(err => console.error(err));
+
+function populateDatalist() {
+  const list = document.getElementById('bosses-list');
+  bosses.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.name;
+    list.appendChild(opt);
+  });
 }
 
 // ---------------- Stats ----------------
 function loadStats() {
-    const raw = localStorage.getItem(STATS_KEY);
-    if (!raw) return { streak: 0, wins: 0, played: 0 };
-    try { return JSON.parse(raw); } catch { return { streak: 0, wins: 0, played: 0 }; }
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+  document.getElementById('streak').textContent = stats.streak || 0;
+  document.getElementById('wins').textContent = stats.wins || 0;
+  document.getElementById('played').textContent = stats.played || 0;
 }
 
-function saveStats(stats) {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+function saveStats(win) {
+  if (testMode) return; // never save stats in test mode
+
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+  stats.streak = stats.streak || 0;
+  stats.wins = stats.wins || 0;
+  stats.played = stats.played || 0;
+
+  stats.played++;
+  if (win) { stats.wins++; stats.streak++; }
+  else stats.streak = 0;
+
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  loadStats();
 }
 
-function updateStatsUI() {
-    const stats = loadStats();
-    streakEl.textContent = stats.streak;
-    winsEl.textContent = stats.wins;
-    playedEl.textContent = stats.played;
+// ---------------- Initialize Game ----------------
+function initializeGame() {
+  loadStats();
+
+  const storedAttempts = testMode ? [] : JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]');
+  attempts = storedAttempts;
+  target = getBossOfTheDay();
+  gameOver = false;
+
+  gridEl.innerHTML = '';
+  makeHeaderRow();
+  attempts.forEach(b => updateGridRow(b, false));
+  
+  if (!gameOver && attempts.length < GRID_SIZE) addEmptyRow();
+
+  const guessedCorrectly = attempts.some(a => a.name === target.name);
+  if (guessedCorrectly) {
+    gameOver = true;
+    showWinOverlay(true);
+  } else if (attempts.length >= GRID_SIZE) {
+    gameOver = true;
+    answerNameEl.textContent = target.name;
+    answerRevealEl.classList.remove('hidden');
+    showWinOverlay(false);
+  }
+
+  feedbackEl.textContent = '';
+  updateBossdleDayLabel();
 }
 
-// ---------------- Grid ----------------
+// ---------------- Header Row ----------------
 function makeHeaderRow() {
-    if (grid.querySelector('.header-row')) return;
-    const row = document.createElement('div');
-    row.className = 'attr-grid header-row';
-    ['Name','Region','Type','Damage','Remembrance'].forEach(text => {
-        const cell = document.createElement('div');
-        cell.className = 'attr-header';
-        cell.textContent = text;
-        row.appendChild(cell);
-    });
-    grid.appendChild(row);
+  if (gridEl.querySelector('.header-row')) return;
+  const row = document.createElement('div');
+  row.className = 'attr-grid header-row';
+  ['Name','Region','Type','Damage','Remembrance'].forEach(text => {
+    const cell = document.createElement('div');
+    cell.className = 'attr-header';
+    cell.textContent = text;
+    row.appendChild(cell);
+  });
+  gridEl.appendChild(row);
 }
 
-function makeEmptyRow() {
-    const row = document.createElement('div');
-    row.className = 'guess-row';
-    for (let i = 0; i < 5; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'guess-cell bad';
-        cell.textContent = '—';
-        row.appendChild(cell);
-    }
-    grid.appendChild(row);
-    return row;
+// ---------------- Empty Row ----------------
+function addEmptyRow() {
+  const row = document.createElement('div');
+  row.classList.add('guess-row','empty-row');
+  row.style.marginTop = '16px';
+  for (let i=0;i<5;i++){
+    const cell = document.createElement('div');
+    cell.classList.add('guess-cell','bad');
+    cell.textContent = '—';
+    row.appendChild(cell);
+  }
+  gridEl.appendChild(row);
 }
 
-function updateRowWithGuess(row, boss) {
-    const cells = row.querySelectorAll('.guess-cell');
-    const comp = compareGuess(boss, target);
-    const attrs = ['name','region','type','damage','remembrance'];
-    attrs.forEach((k,i) => {
-        if (k === 'remembrance') {
-            cells[i].textContent = boss.Remembrance ? 'Yes' : 'No';
-        } else {
-            cells[i].textContent = boss[k];
-        }
-        cells[i].className = 'guess-cell ' + (comp[k] ? 'good':'bad');
-    });
-}
+// ---------------- Update Grid ----------------
+function updateGridRow(boss, save=true) {
+  let row = gridEl.querySelector('.empty-row');
+  if (!row) { 
+    row = document.createElement('div');
+    row.classList.add('guess-row');
+    gridEl.appendChild(row);
+  }
+  row.classList.remove('empty-row');
+  row.innerHTML = '';
 
-// ---------------- Autocomplete ----------------
-function initAutocomplete() {
-    const list = document.getElementById('bosses-list');
-    bosses.forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b.name;
-        list.appendChild(opt);
-    });
-}
+  ['name','region','type','damage','Remembrance'].forEach(attr => {
+    const cell = document.createElement('div');
+    cell.classList.add('guess-cell');
+    let val = boss[attr];
+    if (typeof val==='boolean') val = val?'Yes':'No';
+    cell.textContent = val;
 
-// ---------------- Game Logic ----------------
-function initializeGame(isTest=false) {
-    const today = new Date();
-    const effectiveDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + testDayOffset);
-    const todayStr = effectiveDate.toDateString();
+    if (boss[attr] === target[attr]) cell.classList.add('good');
+    else if (boss[attr] && target[attr] && String(boss[attr]).toLowerCase()===String(target[attr]).toLowerCase()) cell.classList.add('semi');
+    else cell.classList.add('bad');
 
-    if (!isTest) {
-        // Reset daily attempts only on real day change
-        const lastDate = localStorage.getItem(LAST_DATE_KEY);
-        if (lastDate !== todayStr) {
-            localStorage.setItem(ATTEMPTS_KEY, JSON.stringify([]));
-            localStorage.setItem(LAST_DATE_KEY, todayStr);
-        }
-    }
+    row.appendChild(cell);
+  });
 
-    target = pickDailyBoss(effectiveDate);
-    attempts = (isTest || testDayOffset > 0) ? [] : JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]');
-    gameOver = attempts.some(a => sanitizeName(a.name) === sanitizeName(target.name)) || attempts.length >= GRID_SIZE;
+  if (save) {
+    attempts.push(boss);
+    if (!testMode) localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
+  }
 
-    grid.innerHTML = '';
-    makeHeaderRow();
-    attempts.forEach(b => {
-        const row = makeEmptyRow();
-        updateRowWithGuess(row,b);
-    });
-
-    if (!gameOver && attempts.length < GRID_SIZE) makeEmptyRow();
-
-    updateStatsUI();
-    feedback.textContent = '';
-    answerReveal.classList.add('hidden');
-    updateTodayDate();
-
-    if (gameOver) {
-        revealAnswer();
-        showOverlay(attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name)));
-    }
+  if (!gameOver && attempts.length < GRID_SIZE) addEmptyRow();
 }
 
 // ---------------- Handle Guess ----------------
 function handleGuess() {
-    if (gameOver) { showOverlay(attempts.some(a => sanitizeName(a.name)===sanitizeName(target.name))); return; }
+  if (gameOver) return;
 
-    const val = input.value.trim();
-    const boss = findBossByName(val);
-    if (!boss) { feedback.textContent='Invalid boss name.'; return; }
-    if (attempts.some(a => sanitizeName(a.name)===sanitizeName(boss.name))) { feedback.textContent='You already guessed that boss!'; return; }
+  const guessVal = inputEl.value.trim();
+  if (!guessVal) return;
 
-    const lastRow = grid.querySelector('.guess-row:last-child');
-    updateRowWithGuess(lastRow,boss);
-    attempts.push(boss);
-    if(testDayOffset === 0) localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(attempts));
+  const boss = bosses.find(b => b.name.toLowerCase() === guessVal.toLowerCase());
+  if (!boss) { feedbackEl.textContent = 'Invalid boss name.'; return; }
+  if (attempts.some(a => a.name === boss.name)) { feedbackEl.textContent = 'Already guessed!'; return; }
 
-    const cells = lastRow.querySelectorAll('.guess-cell');
-    cells.forEach((c,i) => {
-        setTimeout(()=>c.classList.add('bounce'), i*100);
-        setTimeout(()=>c.classList.remove('bounce'), i*100+600);
+  updateGridRow(boss);
+  inputEl.value = '';
+
+  if (boss.name === target.name) {
+    gameOver = true;
+    saveStats(true);
+    showWinOverlay(true);
+  } else if (attempts.length >= GRID_SIZE) {
+    gameOver = true;
+    answerNameEl.textContent = target.name;
+    answerRevealEl.classList.remove('hidden');
+    saveStats(false);
+    showWinOverlay(false);
+  } else {
+    feedbackEl.textContent = 'Try again!';
+  }
+}
+
+// ---------------- Overlay & Copy ----------------
+document.getElementById('win-close').onclick = () => overlay.classList.add('hidden');
+
+function showWinOverlay(win) {
+  overlay.classList.remove('hidden');
+  const text = document.getElementById('overlay-text');
+  const shareBtn = document.getElementById('overlay-share');
+  const title = document.getElementById('overlay-title');
+
+  // Set overlay title based on win/loss
+  title.textContent = win ? 'You Win!' : 'You Lose!';
+
+  if (win) {
+    const rows = gridEl.querySelectorAll('.guess-row');
+    const winningRow = rows[rows.length - 1];
+    const cells = winningRow.querySelectorAll('.guess-cell');
+    cells.forEach((cell, i) => {
+      cell.style.animationDelay = `${i * 0.1}s`;
+      cell.classList.add('wave-cell');
     });
 
-    if (sanitizeName(boss.name)===sanitizeName(target.name)) {
-        feedback.textContent='You win!';
-        gameOver = true;
-        revealAnswer();
-        updateGameStats(true);
-        setTimeout(()=>showOverlay(true),800);
-    } else if (attempts.length >= GRID_SIZE) {
-        gameOver = true;
-        revealAnswer();
-        updateGameStats(false);
-        setTimeout(()=>showOverlay(false),800);
-    } else {
-        makeEmptyRow();
+    const lastCell = cells[cells.length - 1];
+    lastCell.addEventListener('animationend', () => {
+      text.innerHTML = `You guessed <strong>${target.name}</strong>!<br>` + attempts.map(a => bossEmojiRow(a)).join('<br>');
+      shareBtn.style.display = 'inline-block';
+      shareBtn.onclick = () => copyResults(win);
+    }, { once: true });
+
+  } else {
+    // For loss, no animation
+    text.innerHTML = `The boss was <strong>${target.name}</strong><br>` + attempts.map(a => bossEmojiRow(a)).join('<br>');
+    shareBtn.style.display = 'inline-block';
+    shareBtn.onclick = () => copyResults(win);
+  }
+}
+
+function bossEmojiRow(boss) {
+  return ['name','region','type','damage','Remembrance'].map(attr => {
+    if (boss[attr] === target[attr]) return '🟩';
+    else return '⬛';
+  }).join('');
+}
+
+function copyResults(win) {
+  const num = daysSinceStart();
+  const header = `Bossdle ${pad(num+1,3)} ${win?attempts.length:'X'}/${GRID_SIZE}\n`;
+  const gridStr = attempts.map(a => bossEmojiRow(a)).join('\n');
+  navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
+}
+
+// ---------------- Bossdle Day ----------------
+function updateBossdleDayLabel() {
+  const dayNum = daysSinceStart();
+  bossdleDayEl.textContent = `Bossdle: ${pad(dayNum+1,3)}`;
+}
+
+// ---------------- Event Listeners ----------------
+btnEl.addEventListener('click', handleGuess);
+inputEl.addEventListener('keyup', e => { if(e.key==='Enter') handleGuess(); });
+
+// ---------------- Skip-Day / Test Combo ----------------
+document.addEventListener('keydown', e => {
+  if ((e.key === '=' || e.key === '\\')) {
+    if (!window.keysPressed) window.keysPressed = {};
+    window.keysPressed[e.key] = true;
+
+    if (window.keysPressed['='] && window.keysPressed['\\']) {
+      testMode = true;      // enable test mode
+      testDayOffset++;
+      attempts = [];         // clear in-memory attempts
+      initializeGame();
+      alert(`Test mode: advanced to Bossdle ${pad(daysSinceStart()+1,3)}`);
+      window.keysPressed['='] = false;
+      window.keysPressed['\\'] = false;
     }
-
-    input.value = '';
-}
-
-// ---------------- Reveal Answer & Stats ----------------
-function revealAnswer() {
-    answerName.textContent = target.name;
-    answerReveal.classList.remove('hidden');
-}
-
-function updateGameStats(win) {
-    const stats = loadStats();
-    stats.played++;
-    if(win){ stats.wins++; stats.streak++; } else stats.streak=0;
-    saveStats(stats);
-    updateStatsUI();
-}
-
-// ---------------- Overlay ----------------
-function showOverlay(isWin) {
-    const overlay = document.getElementById('win-overlay');
-    if (!overlay) return;
-
-    const title = overlay.querySelector('#overlay-title');
-    const text = overlay.querySelector('#overlay-text');
-    const shareBtn = overlay.querySelector('#overlay-share');
-    const closeBtn = overlay.querySelector('#win-close');
-
-    closeBtn.onclick = ()=>overlay.classList.add('hidden');
-
-    if(isWin){
-        title.textContent = 'You Win!';
-        text.innerHTML = attempts.map(a=>{
-            const comp = compareGuess(a,target);
-            return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
-        }).join('<br>');
-        shareBtn.style.display='inline-block';
-        shareBtn.onclick = ()=>copyResults(true);
-    } else {
-        title.textContent = 'Game Over!';
-        text.innerHTML = `<p>The boss was <strong>${target.name}</strong>.</p>
-        <p>Your guesses:</p>
-        <p style="font-size:1.2em;line-height:1.4em;">${attempts.map(a=>{
-            const comp = compareGuess(a,target);
-            return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
-        }).join('<br>')}</p>`;
-        shareBtn.style.display='inline-block';
-        shareBtn.textContent='Copy Results';
-        shareBtn.onclick = ()=>copyResults(false);
-    }
-
-    let countdownEl = overlay.querySelector('#overlay-countdown');
-    if(!countdownEl){
-        countdownEl = document.createElement('p');
-        countdownEl.id='overlay-countdown';
-        overlay.querySelector('#win-content').appendChild(countdownEl);
-    }
-
-    function updateCountdown() {
-        const now = new Date();
-        const tomorrowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
-        const diff = tomorrowMidnight - now;
-        const h = Math.floor(diff/3600000);
-        const m = Math.floor((diff%3600000)/60000);
-        const s = Math.floor((diff%60000)/1000);
-        countdownEl.textContent = `Next game in ${h}h ${m}m ${s}s`;
-    }
-
-    updateCountdown();
-    setInterval(updateCountdown,1000);
-    overlay.classList.remove('hidden');
-}
-
-function copyResults(win){
-    const today = new Date();
-    const mm = ('0'+(today.getMonth()+1)).slice(-2);
-    const dd = ('0'+today.getDate()).slice(-2);
-    const yyyy = today.getFullYear();
-    const header = `Elden Ring: Bossdle ${mm}/${dd}/${yyyy} ${win ? attempts.length : 'X'}/${GRID_SIZE}\n`;
-    const gridStr = attempts.map(a=>{
-        const comp = compareGuess(a,target);
-        return ['name','region','type','damage','remembrance'].map(k=>comp[k]?'🟩':'⬛').join('');
-    }).join('\n');
-    navigator.clipboard.writeText(header+gridStr).then(()=>alert('Copied to clipboard!'));
-}
-
-// ---------------- Today's Date ----------------
-function updateTodayDate() {
-    const today = new Date();
-    const effectiveDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + testDayOffset);
-    todayDateEl.textContent = effectiveDate.toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'});
-
-    // Update at local midnight
-    const now = new Date();
-    const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1) - now;
-    setTimeout(() => { updateTodayDate(); initializeGame(); }, msUntilMidnight + 1000);
-}
-
-// ---------------- Hidden Testing Shortcut ----------------
-let keysPressed = {};
-let comboTriggered = false;
-
-window.addEventListener('keydown', (e) => {
-    keysPressed[e.key] = true;
-
-    if(keysPressed['='] && keysPressed['\\'] && !comboTriggered) {
-        comboTriggered = true; // prevent retrigger
-
-        testDayOffset++; // advance 1 day
-        attempts = [];
-        gameOver = false;
-        grid.innerHTML = '';
-        makeHeaderRow();
-        makeEmptyRow();
-        feedback.textContent = '';
-        answerReveal.classList.add('hidden');
-
-        initializeGame(true); // test mode, do not modify localStorage
-        updateTodayDate();
-        console.log(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
-        alert(`Test mode: Temporarily advanced ${testDayOffset} day(s)`);
-    }
+  }
 });
 
-window.addEventListener('keyup', (e) => {
-    delete keysPressed[e.key];
-    if(e.key === '=' || e.key === '\\') comboTriggered = false; // unlock combo
-});
-
-// ---------------- Events ----------------
-btn.addEventListener('click', handleGuess);
-input.addEventListener('keypress', e => { if(e.key==='Enter') handleGuess(); });
-
-// ---------------- Load Bosses ----------------
-fetch('bosses.json')
-.then(r => r.json())
-.then(data => {
-    bosses = data;
-    updateTodayDate();
-    initializeGame();
-    initAutocomplete();
-})
-.catch(err => {
-    console.error('Error loading bosses:', err);
-    feedback.textContent='Error loading boss data.';
+document.addEventListener('keyup', e => {
+  if (window.keysPressed && (e.key === '=' || e.key === '\\')) {
+    window.keysPressed[e.key] = false;
+  }
 });
